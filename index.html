@@ -1,0 +1,290 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administration - Baie Style</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #fff5fa;
+      color: #241820;
+    }
+
+    main {
+      max-width: 850px;
+      margin: auto;
+    }
+
+    h1, h2 { color: #b53670; }
+
+    .panel {
+      background: white;
+      border: 1px solid #f0ccdd;
+      border-radius: 12px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+
+    input, select {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      margin: 8px 0 15px;
+      border: 1px solid #d9c5cf;
+      border-radius: 6px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      padding: 11px 14px;
+      margin: 4px;
+      background: #b53670;
+      color: white;
+      cursor: pointer;
+    }
+
+    .danger { background: #9e2929; }
+    .gold { background: #98712c; }
+
+    .item {
+      border-top: 1px solid #eee;
+      padding: 12px 0;
+    }
+
+    .muted { color: #725f69; font-size: 14px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Baie Style Shop</h1>
+  <p>Administration de ta boutique</p>
+
+  <section class="panel" id="login">
+    <h2>Connexion administrateur</h2>
+    <p class="muted">
+      Prototype de démonstration uniquement.
+      Ce code ne sécurise pas réellement l'accès.
+    </p>
+    <label for="demoPassword">Mot de passe de démonstration</label>
+    <input id="demoPassword" type="password"
+           autocomplete="off" placeholder="Tape DEMO-BAIE">
+    <button onclick="loginDemo()">Ouvrir la démonstration</button>
+    <p id="loginMessage" role="status"></p>
+  </section>
+
+  <section id="dashboard" hidden>
+    <div class="panel">
+      <h2>Ajouter ou modifier un article</h2>
+
+      <form id="productForm">
+        <input id="productId" type="hidden">
+
+        <label for="name">Nom de l'article</label>
+        <input id="name" required maxlength="100">
+
+        <label for="price">Prix en ariary</label>
+        <input id="price" type="number" min="0" step="1" required>
+
+        <label for="sizes">Tailles disponibles</label>
+        <input id="sizes" placeholder="S, M, L" required>
+
+        <label for="image">Adresse de l'image (URL)</label>
+        <input id="image" type="url" placeholder="https://..." required>
+
+        <label for="available">Disponibilité</label>
+        <select id="available">
+          <option value="true">Disponible sur commande</option>
+          <option value="false">Épuisé</option>
+        </select>
+
+        <button type="submit">Enregistrer l'article</button>
+        <button type="button" class="gold" onclick="resetForm()">
+          Annuler
+        </button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Mon catalogue</h2>
+      <p class="muted">
+        Les données sont conservées uniquement dans ce navigateur.
+      </p>
+      <div id="productList"></div>
+    </div>
+
+    <button class="danger" onclick="logout()">Fermer la page admin</button>
+  </section>
+</main>
+
+<script>
+  const STORAGE_KEY = "baieStyleDemoProducts";
+
+  const starterProducts = [
+    {
+      id: 1,
+      name: "Robe élégante",
+      price: 45000,
+      sizes: "S, M, L",
+      image: "https://placehold.co/400x500/f8dce8/211820?text=Robe",
+      available: true
+    },
+    {
+      id: 2,
+      name: "Sac tendance",
+      price: 35000,
+      sizes: "Taille unique",
+      image: "https://placehold.co/400x500/f8dce8/211820?text=Sac",
+      available: true
+    },
+    {
+      id: 3,
+      name: "Ensemble chic",
+      price: 60000,
+      sizes: "S, M, L",
+      image: "https://placehold.co/400x500/f8dce8/211820?text=Ensemble",
+      available: false
+    }
+  ];
+
+  function getProducts() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : starterProducts;
+    } catch {
+      return starterProducts;
+    }
+  }
+
+  let products = getProducts();
+
+  function saveProducts() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(products));
+  }
+
+  function loginDemo() {
+    const value = document.getElementById("demoPassword").value;
+    if (value !== "DEMO-BAIE") {
+      document.getElementById("loginMessage").textContent =
+        "Code de démonstration incorrect.";
+      return;
+    }
+
+    document.getElementById("login").hidden = true;
+    document.getElementById("dashboard").hidden = false;
+    renderProducts();
+  }
+
+  function logout() {
+    document.getElementById("dashboard").hidden = true;
+    document.getElementById("login").hidden = false;
+    document.getElementById("demoPassword").value = "";
+  }
+
+  function resetForm() {
+    document.getElementById("productForm").reset();
+    document.getElementById("productId").value = "";
+  }
+
+  document.getElementById("productForm").addEventListener("submit", event => {
+    event.preventDefault();
+
+    const id = document.getElementById("productId").value;
+    const product = {
+      id: id ? Number(id) : Date.now(),
+      name: document.getElementById("name").value.trim(),
+      price: Number(document.getElementById("price").value),
+      sizes: document.getElementById("sizes").value.trim(),
+      image: document.getElementById("image").value.trim(),
+      available: document.getElementById("available").value === "true"
+    };
+
+    if (!product.name || !Number.isFinite(product.price) ||
+        product.price < 0 || !product.sizes || !product.image) {
+      alert("Vérifie les informations de l'article.");
+      return;
+    }
+
+    if (id) {
+      products = products.map(p => p.id === Number(id) ? product : p);
+    } else {
+      products.push(product);
+    }
+
+    saveProducts();
+    resetForm();
+    renderProducts();
+    alert("Article enregistré dans ce navigateur.");
+  });
+
+  function editProduct(id) {
+    const p = products.find(item => item.id === id);
+    if (!p) return;
+
+    document.getElementById("productId").value = p.id;
+    document.getElementById("name").value = p.name;
+    document.getElementById("price").value = p.price;
+    document.getElementById("sizes").value = p.sizes;
+    document.getElementById("image").value = p.image;
+    document.getElementById("available").value = String(p.available);
+
+    document.getElementById("productForm").scrollIntoView({
+      behavior: "smooth"
+    });
+  }
+
+  function deleteProduct(id) {
+    if (!confirm("Supprimer cet article du catalogue de démonstration ?")) {
+      return;
+    }
+
+    products = products.filter(p => p.id !== id);
+    saveProducts();
+    renderProducts();
+  }
+
+  function renderProducts() {
+    const list = document.getElementById("productList");
+
+    if (!products.length) {
+      list.textContent = "Aucun article pour le moment.";
+      return;
+    }
+
+    list.replaceChildren();
+
+    products.forEach(p => {
+      const item = document.createElement("div");
+      item.className = "item";
+
+      const title = document.createElement("strong");
+      title.textContent = p.name;
+
+      const details = document.createElement("p");
+      details.textContent =
+        p.price.toLocaleString("fr-FR") + " Ar · " + p.sizes +
+        " · " + (p.available ? "Disponible" : "Épuisé");
+
+      const edit = document.createElement("button");
+      edit.textContent = "Modifier";
+      edit.addEventListener("click", () => editProduct(p.id));
+
+      const remove = document.createElement("button");
+      remove.textContent = "Supprimer";
+      remove.className = "danger";
+      remove.addEventListener("click", () => deleteProduct(p.id));
+
+      item.append(title, details, edit, remove);
+      list.appendChild(item);
+    });
+  }
+</script>
+</body>
+  </html>
+                                                
